@@ -1,9 +1,14 @@
 FROM python:3.12-slim
 
-RUN apt -qq update && apt -qq install -y git wget ffmpeg
- 
-COPY . . 
+RUN apt-get update && apt-get install -y \
+    git \
+    wget \
+    ffmpeg \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install -r requirements.txt 
+COPY . .
 
-CMD ["python3","tg.py"]
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+CMD ["python3", "tg.py"]
