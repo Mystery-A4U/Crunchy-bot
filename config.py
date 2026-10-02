@@ -9,9 +9,16 @@ etp_rt_token = ""  # Optional cached SSO refresh token
 allow_guest_fallback = False  # Fallback to guest token when account auth fails
 
 # --- Telegram Settings ---
-API_ID = 12345  # Replace with your API ID
-API_HASH = "" # Replace with your API Hash
-BOT_TOKEN = "" # Replace with your Bot Token
+import os
+
+API_ID = int(os.getenv("API_ID", "0"))
+API_HASH = os.getenv("API_HASH", "")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+
+if not API_ID or not API_HASH or not BOT_TOKEN:
+    raise RuntimeError(
+        "Missing required Railway variables: API_ID, API_HASH, BOT_TOKEN"
+    )
 
 # --- User Management & Limits ---
 sudo_users = [] # List of sudo user IDs (as integers)
