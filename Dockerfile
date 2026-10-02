@@ -8,7 +8,9 @@ RUN apt-get -qq update && \
     apt-get -qq install -y --no-install-recommends \
         ffmpeg \
         curl \
-        ca-certificates && \
+        ca-certificates \
+        gcc \
+        python3-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
