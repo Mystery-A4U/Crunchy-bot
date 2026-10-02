@@ -1,105 +1,75 @@
-'''Crunchyroll Account Configurations 
-if you want to use an account, set use_account to True and fill in the email and password.
-if you want to use a guest account, set use_account to False and leave email and password empty.
-'''
-use_account = True
-Email = ""  # Your email here
-Password = ""  # Your password here
-etp_rt_token = ""  # Optional cached SSO refresh token
-allow_guest_fallback = False  # Fallback to guest token when account auth fails
-
-# --- Telegram Settings ---
+"""
+config.py — All settings are loaded from environment variables for Railway.
+Set these in Railway → Service → Variables tab.
+"""
 import os
 
-API_ID = int(os.getenv("API_ID", "0"))
-API_HASH = os.getenv("API_HASH", "")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+# ── Crunchyroll Account ──────────────────────────────────────
+use_account          = os.environ.get("CR_USE_ACCOUNT", "true").lower() == "true"
+Email                = os.environ.get("CR_EMAIL", "")
+Password             = os.environ.get("CR_PASSWORD", "")
+etp_rt_token         = os.environ.get("CR_ETP_RT_TOKEN", "")
+allow_guest_fallback = os.environ.get("CR_GUEST_FALLBACK", "false").lower() == "true"
 
-if not API_ID or not API_HASH or not BOT_TOKEN:
-    raise RuntimeError(
-        "Missing required Railway variables: API_ID, API_HASH, BOT_TOKEN"
-    )
+# ── Telegram ─────────────────────────────────────────────────
+API_ID    = int(os.environ.get("TG_API_ID", "0"))
+API_HASH  = os.environ.get("TG_API_HASH", "")
+BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "")
 
-# --- User Management & Limits ---
-sudo_users = [] # List of sudo user IDs (as integers)
-premium_users = [] # List of premium user IDs (as integers)
-AUTHORIZED_USERS = [] # List of authorized user IDs to use bot in private (as integers)
+# ── User Management ──────────────────────────────────────────
+def _parse_id_list(env_key: str):
+    raw = os.environ.get(env_key, "")
+    return [int(x.strip()) for x in raw.split(",") if x.strip().lstrip("-").isdigit()]
 
-# Limits for regular users
-REGULAR_USER_AUDIO_LIMIT = 2
-REGULAR_USER_VIDEO_LIMIT_P = 480 # Max height in pixels (e.g., 480 for 480p)
+sudo_users       = _parse_id_list("SUDO_USERS")
+premium_users    = _parse_id_list("PREMIUM_USERS")
+AUTHORIZED_USERS = _parse_id_list("AUTHORIZED_USERS")
 
-# --- Bot State ---
-user_states = {} # user_id: {"step": "...", "data": {...}, "message": message_object}
-active_downloads = {} # user_id: True/False (To prevent concurrent downloads per user)
+# ── Limits ───────────────────────────────────────────────────
+REGULAR_USER_AUDIO_LIMIT   = int(os.environ.get("REGULAR_AUDIO_LIMIT", "2"))
+REGULAR_USER_VIDEO_LIMIT_P = int(os.environ.get("REGULAR_VIDEO_LIMIT_P", "480"))
 
+# ── Bot Runtime State (in-memory) ────────────────────────────
+user_states      = {}
+active_downloads = {}
 
-#debugging
+# ── Debug ────────────────────────────────────────────────────
+debug        = os.environ.get("DEBUG", "false").lower() == "true"
+level        = ""
+max_retries  = int(os.environ.get("MAX_RETRIES", "3"))
+retry_delay  = int(os.environ.get("RETRY_DELAY", "2"))
+download_threads = int(os.environ.get("DOWNLOAD_THREADS", "8"))
 
-debug = False
-level = ""
-max_retries = 3 # Number of retries for failed downloads
-retry_delay = 2 # seconds
-download_threads = 8 # Segment download concurrency (lower for fewer failures)
+# ── Proxy ────────────────────────────────────────────────────
+use_proxy = os.environ.get("USE_PROXY", "false").lower() == "true"
+proxy     = os.environ.get("PROXY_URL", "")
 
-#proxy settings
+# ── Watermark ────────────────────────────────────────────────
+Watermark_Name = os.environ.get("WATERMARK_NAME", "CrunchyBot")
+fontfile       = os.environ.get("FONT_FILE", "font.ttf")
+fontcolor      = os.environ.get("FONT_COLOR", "white")
+opaque         = os.environ.get("FONT_OPACITY", "0.4")
+fontsize       = os.environ.get("FONT_SIZE", "h/10")
+x_axis         = os.environ.get("WATERMARK_X", "10")
+y_axis         = os.environ.get("WATERMARK_Y", "(h-text_h)/2")
 
-use_proxy = False # Set to True to use a proxy
-proxy = "" # Proxy URL (e.g., "http://username:password@proxyserver:port")
+# ── Encoding ─────────────────────────────────────────────────
+encoding_mode  = os.environ.get("ENCODING_MODE", "lossy")
+crf            = int(os.environ.get("CRF", "20"))
+preset         = os.environ.get("PRESET", "medium")
+pix_fmt        = os.environ.get("PIX_FMT", "yuv420p10le")
+encoding_code  = os.environ.get("ENCODING_CODE", "libx265")
+audio_codec    = os.environ.get("AUDIO_CODEC", "copy")
+output_format  = os.environ.get("OUTPUT_FORMAT", "mkv")
+original_quality = os.environ.get("ORIGINAL_QUALITY", "false").lower() == "true"
+use_watermark  = os.environ.get("USE_WATERMARK", "true").lower() == "true"
+ffmpeg_path    = os.environ.get("FFMPEG_PATH", "ffmpeg")
 
-# watermark settings
-Watermark_Name = "ToonTamilIndia" # Your watermark name here
-fontfile = "font.ttf" # Font file path
-fontcolor = "white" # Font color
-opaque = "0.4" # opposite of transparency, 0.0 is fully transparent and 1.0 is fully opaque
-fontsize = "h/10"
-x_axis = "10" # x-axis position of the watermark
-y_axis = "(h-text_h)/2" # y-axis position of the watermark 
+# ── Custom Title ─────────────────────────────────────────────
+use_custom_title = os.environ.get("USE_CUSTOM_TITLE", "false").lower() == "true"
+custom_title     = os.environ.get("CUSTOM_TITLE", "{Title} S{Season}E{Episode} - {EpTitle}")
 
-
-# --- Video & Audio Encoding Settings ---
-# encoding_mode:
-#   "lossy"     - Re-encodes video in H.265 (HEVC) 10-bit for 40-60% smaller file size
-#                 with visually lossless quality, while copying original audio directly
-#                 (zero audio quality loss). Watermarking is fully supported.
-#   "lossless"  - Direct stream copy (remux) for both video and audio.
-#                 Bit-for-bit identical to Crunchyroll source, ultra-fast muxing, no re-encoding.
-#                 (Note: Watermarking is automatically disabled in lossless mode to avoid re-encoding).
-#   "custom"    - Use custom video codec (encoding_code), audio codec, and parameters defined below.
-# (Accepted aliases: "lossyy" -> "lossy", "losslessy" / "original" -> "lossless")
-encoding_mode = "lossy"
-
-# H.265 (HEVC) 10-bit & Video Parameters
-crf = 20                 # Constant Rate Factor (18-24 recommended; 20 gives great compression without visible loss)
-preset = "medium"         # Encoder speed preset: ultrafast, fast, medium, slow, slower (medium is recommended)
-pix_fmt = "yuv420p10le"   # 10-bit pixel format for H.265 (prevents color banding, improves compression efficiency)
-encoding_code = "libx265" # Video encoder ("libx265", "libx264", "copy")
-
-# Audio & Container Format
-audio_codec = "copy"      # "copy" preserves 100% original Crunchyroll audio quality without re-encoding
-output_format = "mkv"     # Output container format: "mkv" (recommended for multi-audio/subtitles) or "mp4"
-
-# Legacy compatibility
-original_quality = False  # If True, behaves as encoding_mode = "lossless"
-
-# FFmpeg Executable & Watermark Settings
-use_watermark = True      # Set to True to use watermark (supported in "lossy" & "custom" modes)
-ffmpeg_path = "ffmpeg"    # Path to ffmpeg executable
-
-
-
-
-#Custom Title
-use_custom_title = False # Set to True to use a custom title
-'''
-{Season} - season number
-{Episode} - episode number
-{Title} - Title of the anime
-{EpTitle} - Title of the episode
-'''
-Custom_Title = "{Title} S{Season}E{Episode} - {EpTitle}" # Custom title format
-
-# audio mapping
+# ── Locale Map ───────────────────────────────────────────────
 locale_map = {
     "ja-JP": "Japanese",
     "en-US": "English (US)",
@@ -151,145 +121,25 @@ locale_map = {
     "ur-IN": "Urdu",
     "ta-LK": "Tamil (Sri Lanka)",
     "te-LK": "Telugu (Sri Lanka)",
-    "zh-HK": "Chinese (Hong Kong)"
+    "zh-HK": "Chinese (Hong Kong)",
 }
 
-
 LANGUAGE_NAME_TO_ISO639_2B = {
-    "Afar": "aar",
-    "Abkhazian": "abk",
-    "Afrikaans": "afr",
-    "Akan": "aka",
-    "Albanian": "sqi",
-    "Amharic": "amh",
-    "Arabic": "ara",
-    "Arabic (Saudi Arabia)": "ara",
-    "Aragonese": "arg",
-    "Armenian": "hye",
-    "Assamese": "asm",
-    "Avaric": "ava",
-    "Avestan": "ave",
-    "Aymara": "aym",
-    "Azerbaijani": "aze",
-    "Basque": "eus",
-    "Belarusian": "bel",
-    "Bengali": "ben",
-    "Bislama": "bis",
-    "Bosnian": "bos",
-    "Breton": "bre",
-    "Bulgarian": "bul",
-    "Burmese": "mya",
-    "Catalan": "cat",
-    "Central Khmer": "khm",
-    "Chamorro": "cha",
-    "Chechen": "che",
-    "Chinese": "zho",
-    "Chinese (Hong Kong)": "zho",
-    "Chinese (Taiwan)": "zho",
-    "Chinese (Simplified)": "zho",
-    "Chinese (Traditional)": "zho",
-    "Corsican": "cos",
-    "Cree": "cre",
-    "Croatian": "hrv",
-    "Czech": "ces",
-    "Danish": "dan",
-    "Dutch": "nld",
-    "Dzongkha": "dzo",
-    "English": "eng",
-    "English (US)": "eng",
-    "English (India)": "eng",
-    "Esperanto": "epo",
-    "Estonian": "est",
-    "Ewe": "ewe",
-    "Faroese": "fao",
-    "Fijian": "fij",
-    "Finnish": "fin",
-    "French": "fra",
-    "French (Canada)": "fra",
-    "Fulah": "ful",
-    "Galician": "glg",
-    "Georgian": "kat",
-    "German": "deu",
-    "Greek": "ell",
-    "Guarani": "grn",
-    "Gujarati": "guj",
-    "Haitian": "hat",
-    "Hausa": "hau",
-    "Hebrew": "heb",
-    "Hindi": "hin",
-    "Hungarian": "hun",
-    "Icelandic": "isl",
-    "Indonesian": "ind",
-    "Interlingua": "ina",
-    "Interlingue": "ile",
-    "Inuktitut": "iku",
-    "Irish": "gle",
-    "Italian": "ita",
-    "Japanese": "jpn",
-    "Javanese": "jav",
-    "Kannada": "kan",
-    "Kashmiri": "kas",
-    "Kazakh": "kaz",
-    "Kinyarwanda": "kin",
-    "Korean": "kor",
-    "Kurdish": "kur",
-    "Latin": "lat",
-    "Latvian": "lav",
-    "Lingala": "lin",
-    "Lithuanian": "lit",
-    "Luxembourgish": "ltz",
-    "Macedonian": "mkd",
-    "Malay": "msa",
-    "Malayalam": "mal",
-    "Maltese": "mlt",
-    "Manx": "glv",
-    "Maori": "mri",
-    "Marathi": "mar",
-    "Marshallese": "mah",
-    "Modern Greek": "ell",
-    "Mongolian": "mon",
-    "Nepali": "nep",
-    "North Ndebele": "nde",
-    "Northern Sami": "sme",
-    "Norwegian": "nor",
-    "Norwegian Bokmål": "nob",
-    "Norwegian Nynorsk": "nno",
-    "Oriya": "ori",
-    "Pashto": "pus",
-    "Persian": "fas",
-    "Polish": "pol",
-    "Portuguese": "por",
-    "Portuguese (Brazil)": "por",
-    "Punjabi": "pan",
-    "Quechua": "que",
-    "Romanian": "ron",
-    "Russian": "rus",
-    "Sanskrit": "san",
-    "Serbian": "srp",
-    "Sindhi": "snd",
-    "Sinhala": "sin",
-    "Slovak": "slk",
-    "Slovenian": "slv",
-    "Somali": "som",
-    "Spanish": "spa",
-    "Spanish (Spain)": "spa",
-    "Spanish (Latin America)": "spa",
-    "Sundanese": "sun",
-    "Swahili": "swa",
-    "Swedish": "swe",
-    "Tamil": "tam",
-    "Telugu": "tel",
-    "Thai": "tha",
-    "Tibetan": "bod",
-    "Turkish": "tur",
-    "Ukrainian": "ukr",
-    "Urdu": "urd",
-    "Uzbek": "uzb",
-    "Vietnamese": "vie",
-    "Welsh": "cym",
-    "Western Frisian": "fry",
-    "Xhosa": "xho",
-    "Yiddish": "yid",
-    "Yoruba": "yor",
-    "Zulu": "zul"
+    "Afrikaans": "afr", "Arabic": "ara", "Arabic (Saudi Arabia)": "ara",
+    "Assamese": "asm", "Bengali": "ben", "Bulgarian": "bul",
+    "Chinese": "zho", "Chinese (Hong Kong)": "zho", "Chinese (Simplified)": "zho",
+    "Chinese (Traditional)": "zho", "Croatian": "hrv", "Czech": "ces",
+    "Danish": "dan", "Dutch": "nld", "English": "eng", "English (US)": "eng",
+    "English (India)": "eng", "Finnish": "fin", "French": "fra",
+    "German": "deu", "Greek": "ell", "Gujarati": "guj", "Hebrew": "heb",
+    "Hindi": "hin", "Hungarian": "hun", "Indonesian": "ind", "Italian": "ita",
+    "Japanese": "jpn", "Kannada": "kan", "Korean": "kor", "Malay": "msa",
+    "Malayalam": "mal", "Marathi": "mar", "Norwegian": "nor", "Odia": "ori",
+    "Polish": "pol", "Portuguese": "por", "Portuguese (Brazil)": "por",
+    "Punjabi": "pan", "Romanian": "ron", "Russian": "rus", "Serbian": "srp",
+    "Slovak": "slk", "Spanish": "spa", "Spanish (Spain)": "spa",
+    "Spanish (Latin America)": "spa", "Swahili": "swa", "Swedish": "swe",
+    "Tamil": "tam", "Tamil (Sri Lanka)": "tam", "Telugu": "tel",
+    "Telugu (Sri Lanka)": "tel", "Thai": "tha", "Turkish": "tur",
+    "Ukrainian": "ukr", "Urdu": "urd", "Vietnamese": "vie",
 }
