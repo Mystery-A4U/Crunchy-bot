@@ -1,9 +1,2 @@
-tls-client
-requests
-lxml
-tqdm
-hachoir
-pyrogram
-tgcrypto
-pywidevine
-typing_extensions
+pyrogram==2.0.106
+tgcrypto==1.2.5
